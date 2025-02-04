@@ -119,10 +119,12 @@ resource "ncloud_init_script" "init" {
               
               # Create directory for ELK
               echo "[INFO] Setting up ELK stack..."
-              sudo mkdir -p /root/elk
+              sudo mkdir -p /home/ubuntu/elk
+              cd /home/ubuntu/elk
               
               # Create docker-compose.yml
-              sudo cat > /root/elk/docker-compose.yml << 'DOCKEREOF'
+              echo "[INFO] Creating docker-compose.yml..."
+              cat << 'DOCKEREOF' | sudo tee docker-compose.yml
               version: '3'
               services:
                 elasticsearch:
@@ -158,10 +160,23 @@ resource "ncloud_init_script" "init" {
                   driver: bridge
               DOCKEREOF
               
+              # Set proper permissions
+              echo "[INFO] Setting permissions..."
+              sudo chown -R ubuntu:ubuntu /home/ubuntu/elk
+              
+              # Pull docker images first
+              echo "[INFO] Pulling Docker images..."
+              sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:8.3.3
+              sudo docker pull docker.elastic.co/kibana/kibana:8.3.3
+              
               # Run docker-compose
               echo "[INFO] Starting containers..."
-              cd /root/elk
+              cd /home/ubuntu/elk
               sudo docker-compose up -d
+              
+              # Wait for containers to start
+              echo "[INFO] Waiting for containers to start..."
+              sleep 30
               
               # Check installation
               echo "[INFO] Checking container status..."
