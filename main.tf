@@ -105,26 +105,26 @@ resource "ncloud_init_script" "init" {
               
               # Update system and install docker
               echo "[INFO] Installing Docker..."
-              sudo apt-get update
-              sudo apt-get install -y docker.io
+              apt-get update
+              apt-get install -y docker.io
               
               # Start and enable Docker
               echo "[INFO] Starting Docker service..."
-              sudo systemctl start docker
-              sudo systemctl enable docker
+              systemctl start docker
+              systemctl enable docker
               
               # Install Docker Compose
               echo "[INFO] Installing Docker Compose..."
-              sudo apt-get install -y docker-compose
+              apt-get install -y docker-compose
               
               # Create directory for ELK
               echo "[INFO] Setting up ELK stack..."
-              sudo mkdir -p /home/ubuntu/elk
-              cd /home/ubuntu/elk
+              mkdir -p /dockerProjects/elk
+              cd /dockerProjects/elk
               
               # Create docker-compose.yml
               echo "[INFO] Creating docker-compose.yml..."
-              cat << 'DOCKEREOF' | sudo tee docker-compose.yml
+              cat << 'DOCKEREOF' > docker-compose.yml
               version: '3'
               services:
                 elasticsearch:
@@ -160,27 +160,14 @@ resource "ncloud_init_script" "init" {
                   driver: bridge
               DOCKEREOF
               
-              # Set proper permissions
-              echo "[INFO] Setting permissions..."
-              sudo chown -R ubuntu:ubuntu /home/ubuntu/elk
-              
-              # Pull docker images first
-              echo "[INFO] Pulling Docker images..."
-              sudo docker pull docker.elastic.co/elasticsearch/elasticsearch:8.3.3
-              sudo docker pull docker.elastic.co/kibana/kibana:8.3.3
-              
               # Run docker-compose
               echo "[INFO] Starting containers..."
-              cd /home/ubuntu/elk
-              sudo docker-compose up -d
-              
-              # Wait for containers to start
-              echo "[INFO] Waiting for containers to start..."
-              sleep 30
+              cd /dockerProjects/elk
+              docker-compose up -d
               
               # Check installation
               echo "[INFO] Checking container status..."
-              sudo docker ps
+              docker ps
               
               echo "[INFO] Installation completed!"
               EOF
