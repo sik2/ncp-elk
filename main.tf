@@ -99,38 +99,30 @@ resource "ncloud_init_script" "init" {
               #!/bin/bash
               
               # Setup logging
-              exec 1> >(logger -s -t $(basename $0)) 2>&1
+              exec 1> >(tee -a "/var/log/user-data.log") 2>&1
               
-              # Update system
-              echo "[1/6] Updating system..."
-              apt-get update
-              apt-get upgrade -y
+              echo "[INFO] Starting installation..."
               
-              # Install docker prerequisites
-              echo "[2/6] Installing docker prerequisites..."
-              apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+              # Update system and install docker
+              echo "[INFO] Installing Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
               
-              # Add docker repository
-              echo "[3/6] Adding docker repository..."
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-              add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-              apt-get update
+              # Start and enable Docker
+              echo "[INFO] Starting Docker service..."
+              sudo systemctl start docker
+              sudo systemctl enable docker
               
-              # Install docker
-              echo "[4/6] Installing docker..."
-              apt-get install -y docker-ce docker-ce-cli containerd.io
-              systemctl enable docker
-              systemctl start docker
+              # Install Docker Compose
+              echo "[INFO] Installing Docker Compose..."
+              sudo apt-get install -y docker-compose
               
-              # Install docker-compose
-              echo "[5/6] Installing docker-compose..."
-              curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              chmod +x /usr/local/bin/docker-compose
+              # Create directory for ELK
+              echo "[INFO] Setting up ELK stack..."
+              sudo mkdir -p /root/elk
               
-              # Setup and run ELK stack
-              echo "[6/6] Setting up ELK stack..."
-              mkdir -p /root/elk
-              cat > /root/elk/docker-compose.yml << 'DOCKEREOF'
+              # Create docker-compose.yml
+              sudo cat > /root/elk/docker-compose.yml << 'DOCKEREOF'
               version: '3'
               services:
                 elasticsearch:
@@ -167,12 +159,15 @@ resource "ncloud_init_script" "init" {
               DOCKEREOF
               
               # Run docker-compose
+              echo "[INFO] Starting containers..."
               cd /root/elk
-              docker-compose up -d
+              sudo docker-compose up -d
               
               # Check installation
-              echo "Installation completed. Checking services..."
-              docker ps
+              echo "[INFO] Checking container status..."
+              sudo docker ps
+              
+              echo "[INFO] Installation completed!"
               EOF
 }
 
