@@ -82,7 +82,7 @@ resource "ncloud_access_control_group_rule" "sg_rule_logstash" {
   }
 }
 
-resource "ncloud_access_control_group_rule" "sg_rule_all_outbound" {
+resource "ncloud_access_control_group_rule" "sg_rule_outbound" {
   access_control_group_no = ncloud_access_control_group.sg_1.id
   outbound {
     protocol    = "TCP"
@@ -181,5 +181,13 @@ resource "ncloud_server" "server_1" {
   server_product_code       = var.server_product_code
   login_key_name           = var.login_key_name
   init_script_no           = ncloud_init_script.init.id
+}
+
+# 서버와 보안그룹 연결
+resource "ncloud_network_interface" "main" {
+  name                  = "${var.prefix}-nic"
+  subnet_no             = ncloud_subnet.subnet_1.id
+  access_control_groups = [ncloud_access_control_group.sg_1.id]
+  server_instance_no    = ncloud_server.server_1.id
 }
 
