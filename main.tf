@@ -30,65 +30,49 @@ resource "ncloud_subnet" "subnet_1" {
   subnet_type     = "PUBLIC"
 }
 
-# 퍼블릭 IP 생성
-resource "ncloud_public_ip" "public_ip_1" {
-  server_instance_no = ncloud_server.server_1.id
-}
-
-# 보안 그룹 생성
+# ACG 생성
 resource "ncloud_access_control_group" "sg_1" {
   name   = "${var.prefix}-sg"
   vpc_no = ncloud_vpc.vpc_1.vpc_no
 }
 
-# 보안 그룹 규칙 추가
-resource "ncloud_access_control_group_rule" "sg_rule_ssh" {
+# ACG 규칙 추가
+resource "ncloud_access_control_group_rule" "sg_rules" {
   access_control_group_no = ncloud_access_control_group.sg_1.id
+
   inbound {
     protocol    = "TCP"
     ip_block    = "0.0.0.0/0"
     port_range  = "22"
     description = "SSH Access"
   }
-}
 
-resource "ncloud_access_control_group_rule" "sg_rule_es" {
-  access_control_group_no = ncloud_access_control_group.sg_1.id
   inbound {
     protocol    = "TCP"
     ip_block    = "0.0.0.0/0"
     port_range  = "9200"
     description = "Elasticsearch Access"
   }
-}
 
-resource "ncloud_access_control_group_rule" "sg_rule_kibana" {
-  access_control_group_no = ncloud_access_control_group.sg_1.id
   inbound {
     protocol    = "TCP"
     ip_block    = "0.0.0.0/0"
     port_range  = "5601"
     description = "Kibana Access"
   }
-}
 
-resource "ncloud_access_control_group_rule" "sg_rule_logstash" {
-  access_control_group_no = ncloud_access_control_group.sg_1.id
   inbound {
     protocol    = "TCP"
     ip_block    = "0.0.0.0/0"
     port_range  = "5044"
     description = "Logstash Access"
   }
-}
 
-resource "ncloud_access_control_group_rule" "sg_rule_outbound" {
-  access_control_group_no = ncloud_access_control_group.sg_1.id
   outbound {
     protocol    = "TCP"
     ip_block    = "0.0.0.0/0"
     port_range  = "1-65535"
-    description = "Allow All Outbound"
+    description = "Allow All TCP Outbound"
   }
 }
 
@@ -103,7 +87,7 @@ resource "ncloud_init_script" "init" {
               
               echo "[INFO] Starting installation..."
               
-              # Update system and install docker
+              # Update system and install Docker
               echo "[INFO] Installing Docker..."
               apt-get update
               apt-get install -y docker.io
@@ -179,11 +163,15 @@ resource "ncloud_server" "server_1" {
   name                      = "${var.prefix}-server"
   server_image_product_code = var.server_image_product_code
   server_product_code       = var.server_product_code
-  login_key_name           = var.login_key_name
-  init_script_no           = ncloud_init_script.init.id
+  login_key_name            = var.login_key_name
+  init_script_no            = ncloud_init_script.init.id
+
+  depends_on = [
+    ncloud_access_control_group_rule.sg_rules
+  ]
 }
 
-# 서버와 보안그룹 연결
+# 네트워크 인터페이스 생성
 resource "ncloud_network_interface" "main" {
   name                  = "${var.prefix}-nic"
   subnet_no             = ncloud_subnet.subnet_1.id
@@ -191,3 +179,8 @@ resource "ncloud_network_interface" "main" {
   server_instance_no    = ncloud_server.server_1.id
 }
 
+# 퍼블릭 IP 생성
+resource "ncloud_public_ip" "public_ip_1" {
+  server_instance_no = ncloud_server.server_1.id
+  depends_on = [ncloud_network_interface.main]
+}
