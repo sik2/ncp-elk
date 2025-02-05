@@ -171,16 +171,7 @@ resource "ncloud_server" "server_1" {
   ]
 }
 
-# 네트워크 인터페이스 생성
-resource "ncloud_network_interface" "main" {
-  name                  = "${var.prefix}-nic"
-  subnet_no             = ncloud_subnet.subnet_1.id
-  access_control_groups = [ncloud_access_control_group.sg_1.id]
-  server_instance_no    = ncloud_server.server_1.id
-}
-
 # 퍼블릭 IP 생성
 resource "ncloud_public_ip" "public_ip_1" {
   server_instance_no = ncloud_server.server_1.id
-  depends_on = [ncloud_network_interface.main]
 }
